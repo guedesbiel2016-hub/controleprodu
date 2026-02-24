@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoproPro - Gestão de Turno</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <style>
+        :root { --primary: #2c3e50; --accent: #3498db; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; padding: 15px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h2 { color: var(--primary); border-left: 5px solid var(--accent); padding-left: 10px; font-size: 1.2rem; margin-top: 0; }
+        .grid-input { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        label { font-weight: bold; font-size: 0.85rem; margin-bottom: 5px; color: #555; }
+        input, select { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
+        .refugo-area { background: #fff5f5; padding: 15px; border-radius: 8px; border: 1px solid #fed7d7; margin-top: 15px; }
+        .refugo-controls { display: flex; gap: 10px; align-items: flex-end; }
+        .btn-add { background: var(--danger); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .res-box { background: var(--primary); color: white; padding: 15px; border-radius: 8px; margin-top: 15px; display: flex; justify-content: space-around; text-align: center; }
+        .res-item span { display: block; font-size: 1.2rem; font-weight: bold; color: var(--warning); }
+        .btn { padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem; margin-top: 15px; background: var(--success); color: white; transition: 0.3s; }
+        .btn:disabled { background: #95a5a6; }
+        .status-msg { margin-top: 10px; font-size: 0.9rem; text-align: center; font-weight: bold; display: none; padding: 10px; border-radius: 5px; }
+        #lista_refugos_texto { margin-top:10px; font-size:0.85rem; color:#c53030; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h2>📦 Planejamento da OP</h2>
+        <div class="grid-input">
+            <div class="form-group"><label>Meta (Peças)</label><input type="number" id="meta_calc" value="1000"></div>
+            <div class="form-group"><label>Peso Peça (Kg)</label><input type="number" id="peso_peca" step="0.001" value="1.200"></div>
+            <div class="form-group"><label>Peso Rebarba (Kg)</label><input type="number" id="peso_rebarba" step="0.001" value="0.300"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>👥 Fechamento de Turno</h2>
+        <div class="grid-input">
+            <div class="form-group"><label>Operador</label><select id="operador_nome">
+                <option value="">Selecione...</option>
+                <option value="Welington">Welington</option>
+                <option value="Daiane">Daiane</option>
+                <option value="Dalyane">Dalyane</option>
+                <option value="Alexander">Alexander</option>
+            </select></div>
+            <div class="form-group"><label>Máquina</label><select id="maquina_id">
+                <option value="">Selecione...</option>
+                <option value="AUTOBLOW 1">AUTOBLOW 1</option>
+                <option value="AUTOBLOW 2">AUTOBLOW 2</option>
+                <option value="AUTOBLOW 3">AUTOBLOW 3</option>
+                <option value="BA 1">BA 1</option>
+                <option value="BA 2">BA 2</option>
+            </select></div>
+            <div class="form-group"><label>Turno</label><select id="turno_id">
+                <option value="Turno A">Turno A</option>
+                <option value="Turno B">Turno B</option>
+                <option value="Turno C">Turno C</option>
+            </select></div>
+            <div class="form-group"><label>Cód. OP</label><input type="text" id="op_nome" placeholder="OP-000"></div>
+            <div class="form-group"><label>Peças Boas</label><input type="number" id="boas_total" value="0"></div>
+            <div class="form-group"><label>Total Moído (Kg)</label><input type="number" id="moido_total" value="0"></div>
+        </div>
+
+        <div class="refugo-area">
+            <label style="color: #c53030;">Lançar Refugos por Motivo</label>
+            <div class="refugo-controls">
+                <select id="motivo_refugo" style="flex: 2;">
+                    <option value="Ajustes">Ajustes</option>
+                    <option value="Fora do peso">Fora do peso</option>
+                    <option value="Bocal fora dimensional">Bocal fora dimensional</option>
+                    <option value="Setup">Setup</option>
+                    <option value="Furos/Bolhas">Furos/Bolhas</option>
+                    <option value="Contaminação">Contaminação</option>
+                    <option value="Colapso/Alças">Colapso/Alças</option>
+                </select>
+                <input type="number" id="qtd_refugo_parcial" value="0" style="flex: 1;">
+                <button class="btn-add" onclick="adicionarRefugo()">+</button>
+            </div>
+            <div id="lista_refugos_texto">Nenhum refugo lançado.</div>
+        </div>
+
+        <div class="res-box">
+            <div class="res-item">EFICIÊNCIA <span id="kpi_prod">0%</span></div>
+            <div class="res-item">REFUGO <span id="kpi_refugo_perc">0%</span></div>
+        </div>
+
+        <button class="btn" id="btnSalvar" onclick="salvarTurno()">FINALIZAR E SALVAR TURNO</button>
+        <div id="status" class="status-msg"></div>
+    </div>
+</div>
+
+<script>
+    // --- SUAS CHAVES CONFIGURADAS ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyCE0zS7nz1nok7jb2FZ2J_gARpVtqqiXec",
+        authDomain: "producao-a16ef.firebaseapp.com",
+        projectId: "producao-a16ef",
+        storageBucket: "producao-a16ef.firebasestorage.app",
+        messagingSenderId: "237309737536",
+        appId: "1:237309737536:web:34
