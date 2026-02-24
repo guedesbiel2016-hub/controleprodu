@@ -20,11 +20,11 @@
         input, select { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
         .refugo-area { background: #fff5f5; padding: 15px; border-radius: 8px; border: 1px solid #fed7d7; margin-top: 15px; }
         .refugo-controls { display: flex; gap: 10px; align-items: flex-end; }
-        .btn-add { background: var(--danger); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-add { background: var(--danger); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; height: 40px; }
         .res-box { background: var(--primary); color: white; padding: 15px; border-radius: 8px; margin-top: 15px; display: flex; justify-content: space-around; text-align: center; }
         .res-item span { display: block; font-size: 1.2rem; font-weight: bold; color: var(--warning); }
         .btn { padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem; margin-top: 15px; background: var(--success); color: white; transition: 0.3s; }
-        .btn:disabled { background: #95a5a6; }
+        .btn:disabled { background: #95a5a6; cursor: not-allowed; }
         .status-msg { margin-top: 10px; font-size: 0.9rem; text-align: center; font-weight: bold; display: none; padding: 10px; border-radius: 5px; }
         #lista_refugos_texto { margin-top:10px; font-size:0.85rem; color:#c53030; font-weight: bold; }
     </style>
@@ -66,13 +66,13 @@
             </select></div>
             <div class="form-group"><label>Cód. OP</label><input type="text" id="op_nome" placeholder="OP-000"></div>
             <div class="form-group"><label>Peças Boas</label><input type="number" id="boas_total" value="0"></div>
-            <div class="form-group"><label>Total Moído (Kg)</label><input type="number" id="moido_total" value="0"></div>
+            <div class="form-group"><label>Total Moído (Kg)</label><input type="number" id="moido_total" step="0.01" value="0"></div>
         </div>
 
         <div class="refugo-area">
             <label style="color: #c53030;">Lançar Refugos por Motivo</label>
             <div class="refugo-controls">
-                <select id="motivo_refugo" style="flex: 2;">
+                <select id="motivo_refugo" style="flex: 2; height: 40px;">
                     <option value="Ajustes">Ajustes</option>
                     <option value="Fora do peso">Fora do peso</option>
                     <option value="Bocal fora dimensional">Bocal fora dimensional</option>
@@ -81,8 +81,8 @@
                     <option value="Contaminação">Contaminação</option>
                     <option value="Colapso/Alças">Colapso/Alças</option>
                 </select>
-                <input type="number" id="qtd_refugo_parcial" value="0" style="flex: 1;">
-                <button class="btn-add" onclick="adicionarRefugo()">+</button>
+                <input type="number" id="qtd_refugo_parcial" value="0" style="flex: 1; height: 40px;">
+                <button type="button" class="btn-add" onclick="adicionarRefugo()">+</button>
             </div>
             <div id="lista_refugos_texto">Nenhum refugo lançado.</div>
         </div>
@@ -92,17 +92,114 @@
             <div class="res-item">REFUGO <span id="kpi_refugo_perc">0%</span></div>
         </div>
 
-        <button class="btn" id="btnSalvar" onclick="salvarTurno()">FINALIZAR E SALVAR TURNO</button>
+        <button type="button" class="btn" id="btnSalvar" onclick="salvarTurno()">FINALIZAR E SALVAR TURNO</button>
         <div id="status" class="status-msg"></div>
     </div>
 </div>
 
 <script>
-    // --- SUAS CHAVES CONFIGURADAS ---
+    // --- VARIÁVEIS GLOBAIS ---
+    let resumoRefugos = {};
+    let totalRefugoGeral = 0;
+
+    // --- CÁLCULOS (Independentes do Firebase) ---
+    function calcular() {
+        const meta = parseFloat(document.getElementById('meta_calc').value) || 0;
+        const boas = parseFloat(document.getElementById('boas_total').value) || 0;
+        
+        const eficienc = meta > 0 ? (boas / meta) * 100 : 0;
+        const totalProduzido = boas + totalRefugoGeral;
+        const pRefugo = totalProduzido > 0 ? (totalRefugoGeral / totalProduzido) * 100 : 0;
+        
+        document.getElementById('kpi_prod').innerText = eficienc.toFixed(1) + "%";
+        document.getElementById('kpi_refugo_perc').innerText = pRefugo.toFixed(1) + "%";
+    }
+
+    function adicionarRefugo() {
+        const mot = document.getElementById('motivo_refugo').value;
+        const qtd = parseInt(document.getElementById('qtd_refugo_parcial').value) || 0;
+        
+        if(qtd > 0) {
+            resumoRefugos[mot] = (resumoRefugos[mot] || 0) + qtd;
+            totalRefugoGeral += qtd;
+            
+            const texto = Object.entries(resumoRefugos).map(([m, q]) => `${m}: ${q}`).join(" | ");
+            document.getElementById('lista_refugos_texto').innerText = "Refugos: " + texto;
+            document.getElementById('qtd_refugo_parcial').value = 0;
+            calcular();
+        }
+    }
+
+    // --- FIREBASE CONFIG ---
     const firebaseConfig = {
         apiKey: "AIzaSyCE0zS7nz1nok7jb2FZ2J_gARpVtqqiXec",
         authDomain: "producao-a16ef.firebaseapp.com",
         projectId: "producao-a16ef",
         storageBucket: "producao-a16ef.firebasestorage.app",
         messagingSenderId: "237309737536",
-        appId: "1:237309737536:web:34
+        appId: "1:237309737536:web:34721dfe6dcdd107ba3da5",
+        databaseURL: "https://producao-a16ef-default-rtdb.firebaseio.com"
+    };
+
+    // Inicialização segura
+    let db;
+    try {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.database();
+    } catch (e) {
+        console.error("Erro ao inicializar Firebase:", e);
+    }
+
+    async function salvarTurno() {
+        const btn = document.getElementById('btnSalvar');
+        const status = document.getElementById('status');
+        
+        const dados = {
+            data: new Date().toLocaleDateString('pt-BR'),
+            hora: new Date().toLocaleTimeString('pt-BR'),
+            operador: document.getElementById('operador_nome').value,
+            maquina: document.getElementById('maquina_id').value,
+            turno: document.getElementById('turno_id').value,
+            op: document.getElementById('op_nome').value,
+            boas: parseInt(document.getElementById('boas_total').value) || 0,
+            moido: parseFloat(document.getElementById('moido_total').value) || 0,
+            refugos_detalhe: resumoRefugos,
+            total_refugo: totalRefugoGeral,
+            eficiencia: document.getElementById('kpi_prod').innerText,
+            refugo_percent: document.getElementById('kpi_refugo_perc').innerText,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        };
+
+        if(!dados.operador || !dados.maquina || !dados.op) {
+            status.style.display = "block"; 
+            status.innerText = "⚠️ Preencha Operador, Máquina e OP!";
+            status.style.backgroundColor = "#fff3cd";
+            return;
+        }
+
+        btn.disabled = true;
+        status.style.display = "block"; 
+        status.innerText = "⏳ Enviando dados...";
+        status.style.backgroundColor = "#d1ecf1";
+
+        try {
+            await db.ref('producao/' + Date.now()).set(dados);
+            status.innerText = "✅ Salvo com sucesso!";
+            status.style.backgroundColor = "#d4edda";
+            setTimeout(() => location.reload(), 2000);
+        } catch (e) {
+            console.error(e);
+            status.innerText = "❌ Erro ao salvar. Verifique as Regras do Database.";
+            status.style.backgroundColor = "#f8d7da";
+            btn.disabled = false;
+        }
+    }
+
+    // Ativar ouvintes de input
+    document.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('input', calcular);
+    });
+</script>
+
+</body>
+</html>
