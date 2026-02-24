@@ -159,54 +159,63 @@
             qtdInput.value = "";
             calcular();
         }
+   async function salvarTurno() {
+    const btn = document.getElementById('btnSalvar');
+    const status = document.getElementById('status');
+    
+    // Dados que serão enviados para o Firebase
+    const dados = {
+        chave_seguranca: "SOPRO2024", // Esta é a sua senha de proteção contra robôs
+        data: new Date().toLocaleDateString('pt-BR'),
+        hora: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
+        operador: document.getElementById('operador_nome').value,
+        maquina: document.getElementById('maquina_id').value,
+        op: document.getElementById('op_nome').value,
+        boas: parseInt(document.getElementById('boas_total').value) || 0,
+        moido: parseFloat(document.getElementById('moido_total').value) || 0,
+        refugos_detalhe: resumoRefugos,
+        total_refugo: totalRefugoGeral,
+        refugo_percent: document.getElementById('kpi_refugo_perc').innerText,
+        eficiencia: document.getElementById('kpi_prod').innerText,
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
+
+    // Validação de campos obrigatórios
+    if(!dados.operador || !dados.maquina || !dados.op) {
+        status.style.display = "block"; 
+        status.innerText = "⚠️ Preencha Operador, Máquina e OP!";
+        status.style.backgroundColor = "#fff3cd"; 
+        return;
     }
 
-    async function salvarTurno() {
-        const btn = document.getElementById('btnSalvar');
-        const status = document.getElementById('status');
+    btn.disabled = true;
+    status.style.display = "block"; 
+    status.innerText = "⏳ Gravando dados...";
+    status.style.backgroundColor = "#d1ecf1";
+
+    try {
+        await db.ref('producao/' + Date.now()).set(dados);
+        status.innerText = "✅ Salvo com sucesso!";
+        status.style.backgroundColor = "#d4edda";
         
-        const dados = {
-            data: new Date().toLocaleDateString('pt-BR'),
-            hora: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
-            operador: document.getElementById('operador_nome').value,
-            maquina: document.getElementById('maquina_id').value,
-            op: document.getElementById('op_nome').value,
-            boas: parseInt(document.getElementById('boas_total').value) || 0,
-            moido: parseFloat(document.getElementById('moido_total').value) || 0,
-            refugos_detalhe: resumoRefugos,
-            total_refugo: totalRefugoGeral,
-            refugo_percent: document.getElementById('kpi_refugo_perc').innerText, // Salva o índice
-            eficiencia: document.getElementById('kpi_prod').innerText,
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-        };
-
-        if(!dados.operador || !dados.maquina || !dados.op) {
-            status.style.display = "block"; status.innerText = "⚠️ Preencha Operador, Máquina e OP!";
-            status.style.backgroundColor = "#fff3cd"; return;
-        }
-
-        btn.disabled = true;
-        status.style.display = "block"; status.innerText = "⏳ Gravando dados...";
-
-        try {
-            await db.ref('producao/' + Date.now()).set(dados);
-            status.innerText = "✅ Salvo com sucesso!";
-            status.style.backgroundColor = "#d4edda";
-            
-            document.getElementById('op_nome').value = "";
-            document.getElementById('boas_total').value = "";
-            document.getElementById('moido_total').value = "";
-            resumoRefugos = {}; totalRefugoGeral = 0;
-            document.getElementById('lista_refugos_texto').innerText = "Nenhum refugo lançado.";
-            calcular();
-            btn.disabled = false;
-            setTimeout(() => status.style.display = "none", 3000);
-        } catch (e) {
-            status.innerText = "❌ Erro ao salvar.";
-            btn.disabled = false;
-        }
+        // Limpa os campos após salvar
+        document.getElementById('op_nome').value = "";
+        document.getElementById('boas_total').value = "";
+        document.getElementById('moido_total').value = "";
+        resumoRefugos = {}; 
+        totalRefugoGeral = 0;
+        document.getElementById('lista_refugos_texto').innerText = "Nenhum refugo lançado.";
+        calcular();
+        
+        btn.disabled = false;
+        setTimeout(() => status.style.display = "none", 3000);
+    } catch (e) {
+        console.error(e);
+        status.innerText = "❌ Erro: Verifique se as Regras do Database estão corretas.";
+        status.style.backgroundColor = "#f8d7da";
+        btn.disabled = false;
     }
-
+}
     function carregarHistorico() {
         db.ref('producao').limitToLast(10).on('value', (snapshot) => {
             const corpoTabela = document.getElementById('corpo-tabela');
