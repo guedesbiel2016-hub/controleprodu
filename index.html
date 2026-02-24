@@ -3,45 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoproPro - Gestão & Histórico</title>
+    <title>SoproPro - Sistema Blindado</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     
     <style>
-        :root { --primary: #2c3e50; --accent: #3498db; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --gray: #95a5a6; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; padding: 15px; color: #333; }
-        .container { max-width: 1100px; margin: 0 auto; }
-        
+        :root { --primary: #2c3e50; --accent: #3498db; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; padding: 15px; }
+        .container { max-width: 1000px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
         h2 { color: var(--primary); border-left: 5px solid var(--accent); padding-left: 10px; font-size: 1.2rem; margin-top: 0; }
-        
         .grid-input { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px; }
         .form-group { display: flex; flex-direction: column; }
         label { font-weight: bold; font-size: 0.85rem; margin-bottom: 5px; color: #555; }
         input, select { padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
-        
         .refugo-area { background: #fff5f5; padding: 15px; border-radius: 8px; border: 1px solid #fed7d7; margin-top: 15px; }
         .refugo-controls { display: flex; gap: 10px; align-items: flex-end; }
         .btn-add { background: var(--danger); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; height: 46px; }
-        
         .res-box { background: var(--primary); color: white; padding: 15px; border-radius: 8px; margin-top: 15px; display: flex; justify-content: space-around; text-align: center; }
         .res-item span { display: block; font-size: 1.2rem; font-weight: bold; color: var(--warning); }
-        
-        .btn { padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem; margin-top: 15px; background: var(--success); color: white; transition: 0.3s; }
-        .btn:disabled { background: var(--gray); cursor: not-allowed; }
-        
-        .card-hist { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; min-width: 600px; }
-        th { background: #f8f9fa; color: var(--primary); padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6; }
-        td { padding: 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
-        
-        .badge-refugo { background: #eee; color: #333; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
-        .refugo-critico { color: var(--danger); font-weight: bold; }
+        .btn { padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem; margin-top: 15px; background: var(--success); color: white; }
+        .btn:disabled { background: #95a5a6; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; }
+        th { background: #f8f9fa; padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6; }
+        td { padding: 12px; border-bottom: 1px solid #eee; }
+        .badge-refugo { background: #eee; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
         .btn-del { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.1rem; }
-        
         .status-msg { margin-top: 10px; font-size: 0.9rem; text-align: center; font-weight: bold; display: none; padding: 10px; border-radius: 5px; }
-        #lista_refugos_texto { margin-top:10px; font-size:0.85rem; color:#c53030; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -76,17 +65,16 @@
         <div class="refugo-area">
             <label style="color: #c53030;">Lançar Motivos de Refugo</label>
             <div class="refugo-controls">
-                <select id="motivo_refugo" style="flex: 2; height: 46px;">
+                <select id="motivo_refugo">
                     <option value="Ajustes">Ajustes</option>
                     <option value="Fora do peso">Fora do peso</option>
                     <option value="Setup">Setup</option>
                     <option value="Furos/Bolhas">Furos/Bolhas</option>
-                    <option value="Contaminação">Contaminação</option>
                 </select>
-                <input type="number" id="qtd_refugo_parcial" placeholder="0" style="flex: 1; height: 46px;">
+                <input type="number" id="qtd_refugo_parcial" placeholder="0">
                 <button type="button" class="btn-add" onclick="adicionarRefugo()">+</button>
             </div>
-            <div id="lista_refugos_texto">Nenhum refugo lançado.</div>
+            <div id="lista_refugos_texto" style="margin-top:10px; font-weight:bold; color:red;">Nenhum refugo lançado.</div>
         </div>
 
         <div class="res-box">
@@ -98,23 +86,25 @@
         <div id="status" class="status-msg"></div>
     </div>
 
-    <div class="card card-hist">
+    <div class="card">
         <h2>📊 Histórico Recente</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Data/Hora</th>
-                    <th>OP</th>
-                    <th>Máquina</th>
-                    <th>Boas</th>
-                    <th>Refugo (Qtd)</th>
-                    <th>% Refugo</th>
-                    <th>Eficiência</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody id="corpo-tabela"></tbody>
-        </table>
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data/Hora</th>
+                        <th>OP</th>
+                        <th>Máquina</th>
+                        <th>Boas</th>
+                        <th>Refugo</th>
+                        <th>% Ref</th>
+                        <th>Efic.</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="corpo-tabela"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -138,7 +128,6 @@
     function calcular() {
         const meta = parseFloat(document.getElementById('meta_calc').value) || 0;
         const boas = parseFloat(document.getElementById('boas_total').value) || 0;
-        
         const eficienc = meta > 0 ? (boas / meta) * 100 : 0;
         const totalProd = boas + totalRefugoGeral;
         const pRefugo = totalProd > 0 ? (totalRefugoGeral / totalProd) * 100 : 0;
@@ -155,96 +144,77 @@
         if(qtd > 0) {
             resumoRefugos[mot] = (resumoRefugos[mot] || 0) + qtd;
             totalRefugoGeral += qtd;
-            document.getElementById('lista_refugos_texto').innerText = "Refugos: " + Object.entries(resumoRefugos).map(([m, q]) => `${m}: ${q}`).join(" | ");
+            document.getElementById('lista_refugos_texto').innerText = "Refugos: " + JSON.stringify(resumoRefugos).replace(/["{}]/g, '').replace(/:/g, ': ').replace(/,/g, ' | ');
             qtdInput.value = "";
             calcular();
         }
-   async function salvarTurno() {
-    const btn = document.getElementById('btnSalvar');
-    const status = document.getElementById('status');
-    
-    // Dados que serão enviados para o Firebase
-    const dados = {
-        chave_seguranca: "SOPRO2024", // Esta é a sua senha de proteção contra robôs
-        data: new Date().toLocaleDateString('pt-BR'),
-        hora: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
-        operador: document.getElementById('operador_nome').value,
-        maquina: document.getElementById('maquina_id').value,
-        op: document.getElementById('op_nome').value,
-        boas: parseInt(document.getElementById('boas_total').value) || 0,
-        moido: parseFloat(document.getElementById('moido_total').value) || 0,
-        refugos_detalhe: resumoRefugos,
-        total_refugo: totalRefugoGeral,
-        refugo_percent: document.getElementById('kpi_refugo_perc').innerText,
-        eficiencia: document.getElementById('kpi_prod').innerText,
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-    };
-
-    // Validação de campos obrigatórios
-    if(!dados.operador || !dados.maquina || !dados.op) {
-        status.style.display = "block"; 
-        status.innerText = "⚠️ Preencha Operador, Máquina e OP!";
-        status.style.backgroundColor = "#fff3cd"; 
-        return;
     }
 
-    btn.disabled = true;
-    status.style.display = "block"; 
-    status.innerText = "⏳ Gravando dados...";
-    status.style.backgroundColor = "#d1ecf1";
+    async function salvarTurno() {
+        const btn = document.getElementById('btnSalvar');
+        const status = document.getElementById('status');
+        
+        const dados = {
+            chave_seguranca: "SOPRO2024", 
+            data: new Date().toLocaleDateString('pt-BR'),
+            hora: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
+            operador: document.getElementById('operador_nome').value,
+            maquina: document.getElementById('maquina_id').value,
+            op: document.getElementById('op_nome').value,
+            boas: parseInt(document.getElementById('boas_total').value) || 0,
+            moido: parseFloat(document.getElementById('moido_total').value) || 0,
+            refugos_detalhe: resumoRefugos,
+            total_refugo: totalRefugoGeral,
+            refugo_percent: document.getElementById('kpi_refugo_perc').innerText,
+            eficiencia: document.getElementById('kpi_prod').innerText,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        };
 
-    try {
-        await db.ref('producao/' + Date.now()).set(dados);
-        status.innerText = "✅ Salvo com sucesso!";
-        status.style.backgroundColor = "#d4edda";
-        
-        // Limpa os campos após salvar
-        document.getElementById('op_nome').value = "";
-        document.getElementById('boas_total').value = "";
-        document.getElementById('moido_total').value = "";
-        resumoRefugos = {}; 
-        totalRefugoGeral = 0;
-        document.getElementById('lista_refugos_texto').innerText = "Nenhum refugo lançado.";
-        calcular();
-        
-        btn.disabled = false;
-        setTimeout(() => status.style.display = "none", 3000);
-    } catch (e) {
-        console.error(e);
-        status.innerText = "❌ Erro: Verifique se as Regras do Database estão corretas.";
-        status.style.backgroundColor = "#f8d7da";
-        btn.disabled = false;
+        if(!dados.operador || !dados.maquina || !dados.op) {
+            status.style.display = "block"; status.innerText = "⚠️ Preencha Operador, Máquina e OP!";
+            status.style.backgroundColor = "#fff3cd"; return;
+        }
+
+        btn.disabled = true;
+        status.style.display = "block"; status.innerText = "⏳ Gravando...";
+
+        try {
+            await db.ref('producao/' + Date.now()).set(dados);
+            status.innerText = "✅ Salvo com sucesso!";
+            status.style.backgroundColor = "#d4edda";
+            setTimeout(() => location.reload(), 1500);
+        } catch (e) {
+            status.innerText = "❌ Erro nas Regras do Firebase.";
+            status.style.backgroundColor = "#f8d7da";
+            btn.disabled = false;
+        }
     }
-}
+
     function carregarHistorico() {
         db.ref('producao').limitToLast(10).on('value', (snapshot) => {
-            const corpoTabela = document.getElementById('corpo-tabela');
-            corpoTabela.innerHTML = "";
+            const corpo = document.getElementById('corpo-tabela');
+            corpo.innerHTML = "";
             let itens = [];
             snapshot.forEach(child => { itens.unshift({ id: child.key, ...child.val() }); });
-            
             itens.forEach(d => {
-                // Lógica para destacar refugo alto (acima de 5%)
-                const numRefugo = parseFloat(d.refugo_percent) || 0;
-                const classeRefugo = numRefugo > 5 ? 'refugo-critico' : '';
-
-                corpoTabela.innerHTML += `
-                    <tr>
-                        <td>${d.data}<br><small>${d.hora}</small></td>
-                        <td><strong>${d.op}</strong></td>
-                        <td>${d.maquina}</td>
-                        <td>${d.boas}</td>
-                        <td><span class="badge-refugo">${d.total_refugo || 0}</span></td>
-                        <td class="${classeRefugo}">${d.refugo_percent || '0%'}</td>
-                        <td>${d.eficiencia}</td>
-                        <td><button class="btn-del" onclick="excluirRegistro('${d.id}')">🗑️</button></td>
-                    </tr>`;
+                corpo.innerHTML += `<tr>
+                    <td>${d.data}</td>
+                    <td>${d.op}</td>
+                    <td>${d.maquina}</td>
+                    <td>${d.boas}</td>
+                    <td><span class="badge-refugo">${d.total_refugo || 0}</span></td>
+                    <td>${d.refugo_percent}</td>
+                    <td>${d.eficiencia}</td>
+                    <td><button class="btn-del" onclick="excluirRegistro('${d.id}')">🗑️</button></td>
+                </tr>`;
             });
         });
     }
 
     function excluirRegistro(id) {
-        if(confirm("Excluir este lançamento?")) {
+        if(confirm("Excluir?")) {
+            // Para excluir, o Firebase também precisa da chave. Mas como regras de ".write" afetam o "remove", 
+            // se der erro aqui, me avise que ajustamos a regra para permitir delete.
             db.ref('producao/' + id).remove();
         }
     }
@@ -252,6 +222,5 @@
     document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', calcular));
     window.onload = carregarHistorico;
 </script>
-
 </body>
 </html>
