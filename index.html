@@ -3,28 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoproPro - Gestão de Turno</title>
+    <title>SoproPro - Gestão & Histórico</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     
     <style>
-        :root { --primary: #2c3e50; --accent: #3498db; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; padding: 15px; }
-        .container { max-width: 900px; margin: 0 auto; }
+        :root { --primary: #2c3e50; --accent: #3498db; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --gray: #95a5a6; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; padding: 15px; color: #333; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
         h2 { color: var(--primary); border-left: 5px solid var(--accent); padding-left: 10px; font-size: 1.2rem; margin-top: 0; }
-        .grid-input { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 15px; }
+        
+        .grid-input { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px; }
         .form-group { display: flex; flex-direction: column; }
         label { font-weight: bold; font-size: 0.85rem; margin-bottom: 5px; color: #555; }
         input, select { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
+        
         .refugo-area { background: #fff5f5; padding: 15px; border-radius: 8px; border: 1px solid #fed7d7; margin-top: 15px; }
         .refugo-controls { display: flex; gap: 10px; align-items: flex-end; }
-        .btn-add { background: var(--danger); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; height: 40px; }
+        .btn-add { background: var(--danger); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        
         .res-box { background: var(--primary); color: white; padding: 15px; border-radius: 8px; margin-top: 15px; display: flex; justify-content: space-around; text-align: center; }
         .res-item span { display: block; font-size: 1.2rem; font-weight: bold; color: var(--warning); }
+        
         .btn { padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem; margin-top: 15px; background: var(--success); color: white; transition: 0.3s; }
-        .btn:disabled { background: #95a5a6; cursor: not-allowed; }
+        .btn:disabled { background: var(--gray); cursor: not-allowed; }
+        
+        /* Tabela de Histórico */
+        .card-hist { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; }
+        th { background: #f8f9fa; color: var(--primary); padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6; }
+        td { padding: 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        tr:hover { background-color: #f1f1f1; }
+        
+        .badge-refugo { background: var(--danger); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .btn-del { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.1rem; padding: 5px; transition: 0.2s; }
+        .btn-del:hover { transform: scale(1.2); }
+        
         .status-msg { margin-top: 10px; font-size: 0.9rem; text-align: center; font-weight: bold; display: none; padding: 10px; border-radius: 5px; }
         #lista_refugos_texto { margin-top:10px; font-size:0.85rem; color:#c53030; font-weight: bold; }
     </style>
@@ -33,55 +50,42 @@
 
 <div class="container">
     <div class="card">
-        <h2>📦 Planejamento da OP</h2>
+        <h2>👥 Novo Lançamento de Turno</h2>
         <div class="grid-input">
             <div class="form-group"><label>Meta (Peças)</label><input type="number" id="meta_calc" value="1000"></div>
-            <div class="form-group"><label>Peso Peça (Kg)</label><input type="number" id="peso_peca" step="0.001" value="1.200"></div>
-            <div class="form-group"><label>Peso Rebarba (Kg)</label><input type="number" id="peso_rebarba" step="0.001" value="0.300"></div>
-        </div>
-    </div>
-
-    <div class="card">
-        <h2>👥 Fechamento de Turno</h2>
-        <div class="grid-input">
-            <div class="form-group"><label>Operador</label><select id="operador_nome">
-                <option value="">Selecione...</option>
-                <option value="Welington">Welington</option>
-                <option value="Daiane">Daiane</option>
-                <option value="Dalyane">Dalyane</option>
-                <option value="Alexander">Alexander</option>
-            </select></div>
-            <div class="form-group"><label>Máquina</label><select id="maquina_id">
-                <option value="">Selecione...</option>
-                <option value="AUTOBLOW 1">AUTOBLOW 1</option>
-                <option value="AUTOBLOW 2">AUTOBLOW 2</option>
-                <option value="AUTOBLOW 3">AUTOBLOW 3</option>
-                <option value="BA 1">BA 1</option>
-                <option value="BA 2">BA 2</option>
-            </select></div>
-            <div class="form-group"><label>Turno</label><select id="turno_id">
-                <option value="Turno A">Turno A</option>
-                <option value="Turno B">Turno B</option>
-                <option value="Turno C">Turno C</option>
-            </select></div>
+            <div class="form-group"><label>Operador</label>
+                <select id="operador_nome">
+                    <option value="">Selecione...</option>
+                    <option value="Welington">Welington</option>
+                    <option value="Daiane">Daiane</option>
+                    <option value="Dalyane">Dalyane</option>
+                    <option value="Alexander">Alexander</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Máquina</label>
+                <select id="maquina_id">
+                    <option value="">Selecione...</option>
+                    <option value="AUTOBLOW 1">AUTOBLOW 1</option>
+                    <option value="AUTOBLOW 2">AUTOBLOW 2</option>
+                    <option value="BA 1">BA 1</option>
+                </select>
+            </div>
             <div class="form-group"><label>Cód. OP</label><input type="text" id="op_nome" placeholder="OP-000"></div>
             <div class="form-group"><label>Peças Boas</label><input type="number" id="boas_total" value="0"></div>
-            <div class="form-group"><label>Total Moído (Kg)</label><input type="number" id="moido_total" step="0.01" value="0"></div>
+            <div class="form-group"><label>Moído (Kg)</label><input type="number" id="moido_total" step="0.01" value="0"></div>
         </div>
 
         <div class="refugo-area">
-            <label style="color: #c53030;">Lançar Refugos por Motivo</label>
+            <label style="color: #c53030;">Lançar Motivos de Refugo</label>
             <div class="refugo-controls">
-                <select id="motivo_refugo" style="flex: 2; height: 40px;">
+                <select id="motivo_refugo" style="flex: 2;">
                     <option value="Ajustes">Ajustes</option>
                     <option value="Fora do peso">Fora do peso</option>
-                    <option value="Bocal fora dimensional">Bocal fora dimensional</option>
                     <option value="Setup">Setup</option>
                     <option value="Furos/Bolhas">Furos/Bolhas</option>
                     <option value="Contaminação">Contaminação</option>
-                    <option value="Colapso/Alças">Colapso/Alças</option>
                 </select>
-                <input type="number" id="qtd_refugo_parcial" value="0" style="flex: 1; height: 40px;">
+                <input type="number" id="qtd_refugo_parcial" value="0" style="flex: 1;">
                 <button type="button" class="btn-add" onclick="adicionarRefugo()">+</button>
             </div>
             <div id="lista_refugos_texto">Nenhum refugo lançado.</div>
@@ -92,45 +96,32 @@
             <div class="res-item">REFUGO <span id="kpi_refugo_perc">0%</span></div>
         </div>
 
-        <button type="button" class="btn" id="btnSalvar" onclick="salvarTurno()">FINALIZAR E SALVAR TURNO</button>
+        <button type="button" class="btn" id="btnSalvar" onclick="salvarTurno()">FINALIZAR E SALVAR NO FIREBASE</button>
         <div id="status" class="status-msg"></div>
+    </div>
+
+    <div class="card card-hist">
+        <h2>📊 Histórico Recente (Últimos 10 lançamentos)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Data/Hora</th>
+                    <th>OP</th>
+                    <th>Máquina</th>
+                    <th>Boas</th>
+                    <th>Refugo</th>
+                    <th>Eficiência</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="corpo-tabela">
+                </tbody>
+        </table>
     </div>
 </div>
 
 <script>
-    // --- VARIÁVEIS GLOBAIS ---
-    let resumoRefugos = {};
-    let totalRefugoGeral = 0;
-
-    // --- CÁLCULOS (Independentes do Firebase) ---
-    function calcular() {
-        const meta = parseFloat(document.getElementById('meta_calc').value) || 0;
-        const boas = parseFloat(document.getElementById('boas_total').value) || 0;
-        
-        const eficienc = meta > 0 ? (boas / meta) * 100 : 0;
-        const totalProduzido = boas + totalRefugoGeral;
-        const pRefugo = totalProduzido > 0 ? (totalRefugoGeral / totalProduzido) * 100 : 0;
-        
-        document.getElementById('kpi_prod').innerText = eficienc.toFixed(1) + "%";
-        document.getElementById('kpi_refugo_perc').innerText = pRefugo.toFixed(1) + "%";
-    }
-
-    function adicionarRefugo() {
-        const mot = document.getElementById('motivo_refugo').value;
-        const qtd = parseInt(document.getElementById('qtd_refugo_parcial').value) || 0;
-        
-        if(qtd > 0) {
-            resumoRefugos[mot] = (resumoRefugos[mot] || 0) + qtd;
-            totalRefugoGeral += qtd;
-            
-            const texto = Object.entries(resumoRefugos).map(([m, q]) => `${m}: ${q}`).join(" | ");
-            document.getElementById('lista_refugos_texto').innerText = "Refugos: " + texto;
-            document.getElementById('qtd_refugo_parcial').value = 0;
-            calcular();
-        }
-    }
-
-    // --- FIREBASE CONFIG ---
+    // --- CONFIGURAÇÃO FIREBASE ---
     const firebaseConfig = {
         apiKey: "AIzaSyCE0zS7nz1nok7jb2FZ2J_gARpVtqqiXec",
         authDomain: "producao-a16ef.firebaseapp.com",
@@ -141,64 +132,121 @@
         databaseURL: "https://producao-a16ef-default-rtdb.firebaseio.com"
     };
 
-    // Inicialização segura
-    let db;
-    try {
-        firebase.initializeApp(firebaseConfig);
-        db = firebase.database();
-    } catch (e) {
-        console.error("Erro ao inicializar Firebase:", e);
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let resumoRefugos = {};
+    let totalRefugoGeral = 0;
+
+    // --- FUNÇÕES DE CÁLCULO ---
+    function calcular() {
+        const meta = parseFloat(document.getElementById('meta_calc').value) || 0;
+        const boas = parseFloat(document.getElementById('boas_total').value) || 0;
+        const eficienc = meta > 0 ? (boas / meta) * 100 : 0;
+        const totalProd = boas + totalRefugoGeral;
+        const pRefugo = totalProd > 0 ? (totalRefugoGeral / totalProd) * 100 : 0;
+        
+        document.getElementById('kpi_prod').innerText = eficienc.toFixed(1) + "%";
+        document.getElementById('kpi_refugo_perc').innerText = pRefugo.toFixed(1) + "%";
     }
 
+    function adicionarRefugo() {
+        const mot = document.getElementById('motivo_refugo').value;
+        const qtd = parseInt(document.getElementById('qtd_refugo_parcial').value) || 0;
+        if(qtd > 0) {
+            resumoRefugos[mot] = (resumoRefugos[mot] || 0) + qtd;
+            totalRefugoGeral += qtd;
+            document.getElementById('lista_refugos_texto').innerText = "Refugos: " + Object.entries(resumoRefugos).map(([m, q]) => `${m}: ${q}`).join(" | ");
+            document.getElementById('qtd_refugo_parcial').value = 0;
+            calcular();
+        }
+    }
+
+    // --- SALVAR NO FIREBASE ---
     async function salvarTurno() {
         const btn = document.getElementById('btnSalvar');
         const status = document.getElementById('status');
         
         const dados = {
             data: new Date().toLocaleDateString('pt-BR'),
-            hora: new Date().toLocaleTimeString('pt-BR'),
+            hora: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
             operador: document.getElementById('operador_nome').value,
             maquina: document.getElementById('maquina_id').value,
-            turno: document.getElementById('turno_id').value,
             op: document.getElementById('op_nome').value,
             boas: parseInt(document.getElementById('boas_total').value) || 0,
             moido: parseFloat(document.getElementById('moido_total').value) || 0,
             refugos_detalhe: resumoRefugos,
             total_refugo: totalRefugoGeral,
             eficiencia: document.getElementById('kpi_prod').innerText,
-            refugo_percent: document.getElementById('kpi_refugo_perc').innerText,
             timestamp: firebase.database.ServerValue.TIMESTAMP
         };
 
         if(!dados.operador || !dados.maquina || !dados.op) {
-            status.style.display = "block"; 
-            status.innerText = "⚠️ Preencha Operador, Máquina e OP!";
-            status.style.backgroundColor = "#fff3cd";
-            return;
+            status.style.display = "block"; status.innerText = "⚠️ Preencha os campos obrigatórios!";
+            status.style.backgroundColor = "#fff3cd"; return;
         }
 
         btn.disabled = true;
-        status.style.display = "block"; 
-        status.innerText = "⏳ Enviando dados...";
-        status.style.backgroundColor = "#d1ecf1";
+        status.style.display = "block"; status.innerText = "⏳ Enviando...";
 
         try {
             await db.ref('producao/' + Date.now()).set(dados);
             status.innerText = "✅ Salvo com sucesso!";
             status.style.backgroundColor = "#d4edda";
-            setTimeout(() => location.reload(), 2000);
+            
+            // Reset campos
+            document.getElementById('op_nome').value = "";
+            document.getElementById('boas_total').value = "0";
+            resumoRefugos = {}; totalRefugoGeral = 0;
+            document.getElementById('lista_refugos_texto').innerText = "Nenhum refugo lançado.";
+            calcular();
         } catch (e) {
-            console.error(e);
-            status.innerText = "❌ Erro ao salvar. Verifique as Regras do Database.";
-            status.style.backgroundColor = "#f8d7da";
+            status.innerText = "❌ Erro ao salvar.";
             btn.disabled = false;
         }
     }
 
-    // Ativar ouvintes de input
-    document.querySelectorAll('input, select').forEach(el => {
-        el.addEventListener('input', calcular);
-    });
+    // --- CARREGAR HISTÓRICO EM TEMPO REAL ---
+    function carregarHistorico() {
+        db.ref('producao').limitToLast(10).on('value', (snapshot) => {
+            const corpoTabela = document.getElementById('corpo-tabela');
+            corpoTabela.innerHTML = "";
+            
+            let itens = [];
+            snapshot.forEach(child => {
+                itens.unshift({ id: child.key, ...child.val() });
+            });
+
+            itens.forEach(d => {
+                corpoTabela.innerHTML += `
+                    <tr>
+                        <td>${d.data}<br><small>${d.hora}</small></td>
+                        <td><strong>${d.op}</strong></td>
+                        <td>${d.maquina}</td>
+                        <td>${d.boas}</td>
+                        <td><span class="badge-refugo">${d.total_refugo || 0}</span></td>
+                        <td>${d.eficiencia}</td>
+                        <td>
+                            <button class="btn-del" onclick="excluirRegistro('${d.id}')" title="Excluir">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        });
+    }
+
+    // --- EXCLUIR REGISTRO ---
+    function excluirRegistro(id) {
+        if(confirm("Deseja realmente excluir este lançamento?")) {
+            db.ref('producao/' + id).remove()
+              .then(() => alert("Registro removido!"))
+              .catch(err => alert("Erro ao excluir: " + err));
+        }
+    }
+
+    // Inicialização
+    document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', calcular));
+    window.onload = carregarHistorico;
 </script>
 
 </body>
