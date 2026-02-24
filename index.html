@@ -11,7 +11,7 @@
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --danger: #e74c3c; --success: #27ae60; --warning: #f39c12; --gray: #95a5a6; }
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; padding: 15px; color: #333; }
-        .container { max-width: 1000px; margin: 0 auto; }
+        .container { max-width: 1100px; margin: 0 auto; }
         
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
         h2 { color: var(--primary); border-left: 5px solid var(--accent); padding-left: 10px; font-size: 1.2rem; margin-top: 0; }
@@ -32,12 +32,14 @@
         .btn:disabled { background: var(--gray); cursor: not-allowed; }
         
         .card-hist { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; min-width: 600px; }
         th { background: #f8f9fa; color: var(--primary); padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6; }
         td { padding: 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
         
-        .badge-refugo { background: var(--danger); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .badge-refugo { background: #eee; color: #333; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .refugo-critico { color: var(--danger); font-weight: bold; }
         .btn-del { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.1rem; }
+        
         .status-msg { margin-top: 10px; font-size: 0.9rem; text-align: center; font-weight: bold; display: none; padding: 10px; border-radius: 5px; }
         #lista_refugos_texto { margin-top:10px; font-size:0.85rem; color:#c53030; font-weight: bold; }
     </style>
@@ -89,7 +91,7 @@
 
         <div class="res-box">
             <div class="res-item">EFICIÊNCIA <span id="kpi_prod">0%</span></div>
-            <div class="res-item">REFUGO <span id="kpi_refugo_perc">0%</span></div>
+            <div class="res-item">ÍNDICE REFUGO <span id="kpi_refugo_perc">0%</span></div>
         </div>
 
         <button type="button" class="btn" id="btnSalvar" onclick="salvarTurno()">FINALIZAR E SALVAR</button>
@@ -105,7 +107,8 @@
                     <th>OP</th>
                     <th>Máquina</th>
                     <th>Boas</th>
-                    <th>Refugo</th>
+                    <th>Refugo (Qtd)</th>
+                    <th>% Refugo</th>
                     <th>Eficiência</th>
                     <th>Ações</th>
                 </tr>
@@ -116,7 +119,6 @@
 </div>
 
 <script>
-    // --- FIREBASE CONFIG ---
     const firebaseConfig = {
         apiKey: "AIzaSyCE0zS7nz1nok7jb2FZ2J_gARpVtqqiXec",
         authDomain: "producao-a16ef.firebaseapp.com",
@@ -133,7 +135,6 @@
     let resumoRefugos = {};
     let totalRefugoGeral = 0;
 
-    // --- FUNÇÕES DE CÁLCULO ---
     function calcular() {
         const meta = parseFloat(document.getElementById('meta_calc').value) || 0;
         const boas = parseFloat(document.getElementById('boas_total').value) || 0;
@@ -155,12 +156,11 @@
             resumoRefugos[mot] = (resumoRefugos[mot] || 0) + qtd;
             totalRefugoGeral += qtd;
             document.getElementById('lista_refugos_texto').innerText = "Refugos: " + Object.entries(resumoRefugos).map(([m, q]) => `${m}: ${q}`).join(" | ");
-            qtdInput.value = ""; // Limpa o campo após adicionar
+            qtdInput.value = "";
             calcular();
         }
     }
 
-    // --- SALVAR NO FIREBASE ---
     async function salvarTurno() {
         const btn = document.getElementById('btnSalvar');
         const status = document.getElementById('status');
@@ -175,6 +175,7 @@
             moido: parseFloat(document.getElementById('moido_total').value) || 0,
             refugos_detalhe: resumoRefugos,
             total_refugo: totalRefugoGeral,
+            refugo_percent: document.getElementById('kpi_refugo_perc').innerText, // Salva o índice
             eficiencia: document.getElementById('kpi_prod').innerText,
             timestamp: firebase.database.ServerValue.TIMESTAMP
         };
@@ -192,7 +193,6 @@
             status.innerText = "✅ Salvo com sucesso!";
             status.style.backgroundColor = "#d4edda";
             
-            // Limpa tudo após salvar
             document.getElementById('op_nome').value = "";
             document.getElementById('boas_total').value = "";
             document.getElementById('moido_total').value = "";
@@ -213,7 +213,12 @@
             corpoTabela.innerHTML = "";
             let itens = [];
             snapshot.forEach(child => { itens.unshift({ id: child.key, ...child.val() }); });
+            
             itens.forEach(d => {
+                // Lógica para destacar refugo alto (acima de 5%)
+                const numRefugo = parseFloat(d.refugo_percent) || 0;
+                const classeRefugo = numRefugo > 5 ? 'refugo-critico' : '';
+
                 corpoTabela.innerHTML += `
                     <tr>
                         <td>${d.data}<br><small>${d.hora}</small></td>
@@ -221,6 +226,7 @@
                         <td>${d.maquina}</td>
                         <td>${d.boas}</td>
                         <td><span class="badge-refugo">${d.total_refugo || 0}</span></td>
+                        <td class="${classeRefugo}">${d.refugo_percent || '0%'}</td>
                         <td>${d.eficiencia}</td>
                         <td><button class="btn-del" onclick="excluirRegistro('${d.id}')">🗑️</button></td>
                     </tr>`;
@@ -234,7 +240,6 @@
         }
     }
 
-    // Inicialização
     document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', calcular));
     window.onload = carregarHistorico;
 </script>
