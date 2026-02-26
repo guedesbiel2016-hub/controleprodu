@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoproPro - Sistema de Produção</title>
+    <title>SoproPro - Produção</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -13,33 +13,18 @@
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; padding: 15px; }
         .container { max-width: 1000px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        h2 { color: var(--primary); border-left: 5px solid var(--accent); padding-left: 10px; font-size: 1.2rem; margin-top: 0; }
-        .grid-input { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px; }
-        .form-group { display: flex; flex-direction: column; }
-        label { font-weight: bold; font-size: 0.85rem; margin-bottom: 5px; color: #555; }
-        input, select { padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
-        
-        /* Área de Refugo com Estorno */
+        .grid-input { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        .form-group { display: flex; flex-direction: column; margin-bottom: 10px; }
+        label { font-weight: bold; font-size: 0.85rem; margin-bottom: 5px; }
+        input, select { padding: 12px; border: 1px solid #ccc; border-radius: 6px; }
         .refugo-area { background: #fff5f5; padding: 15px; border-radius: 8px; border: 1px solid #fed7d7; margin-top: 15px; }
-        .refugo-controls { display: flex; gap: 10px; align-items: flex-end; }
-        .btn-add { background: var(--danger); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; height: 46px; }
-        
-        .refugo-item { background: #fee2e2; padding: 6px 12px; border-radius: 6px; margin-right: 8px; display: inline-flex; align-items: center; margin-bottom: 8px; border: 1px solid #fecaca; font-weight: bold; color: #c53030; }
-        .btn-remove-refugo { cursor: pointer; color: #e74c3c; font-weight: bold; margin-left: 10px; border: none; background: none; font-size: 1.2rem; line-height: 1; }
-
-        .res-box { background: var(--primary); color: white; padding: 15px; border-radius: 8px; margin-top: 15px; display: flex; justify-content: space-around; text-align: center; }
-        .res-item span { display: block; font-size: 1.2rem; font-weight: bold; color: var(--warning); }
-        
-        .btn { padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem; margin-top: 15px; background: var(--success); color: white; transition: 0.3s; }
-        .btn:hover { background: #219150; }
+        .refugo-item { background: #fee2e2; padding: 5px 10px; border-radius: 4px; margin: 5px; display: inline-block; font-weight: bold; border: 1px solid #fecaca; }
+        .res-box { background: var(--primary); color: white; padding: 15px; border-radius: 8px; margin: 15px 0; display: flex; justify-content: space-around; }
+        .btn { padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; background: var(--success); color: white; font-size: 1rem; }
         .btn:disabled { background: #95a5a6; }
-        
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; }
-        th { background: #f8f9fa; padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6; }
-        td { padding: 12px; border-bottom: 1px solid #eee; }
-        .badge-refugo { background: #eee; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
-        .btn-del { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.1rem; }
-        .status-msg { margin-top: 10px; font-size: 0.9rem; text-align: center; font-weight: bold; display: none; padding: 10px; border-radius: 5px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        .btn-del { color: var(--danger); cursor: pointer; background: none; border: none; font-size: 1.2rem; }
     </style>
 </head>
 <body>
@@ -48,7 +33,7 @@
     <div class="card">
         <h2>👥 Novo Lançamento de Turno</h2>
         <div class="grid-input">
-            <div class="form-group"><label>Meta (Peças)</label><input type="number" id="meta_calc" placeholder="0"></div>
+            <div class="form-group"><label>Meta</label><input type="number" id="meta_calc" oninput="calcular()"></div>
             <div class="form-group"><label>Operador</label>
                 <select id="operador_nome">
                     <option value="">Selecione...</option>
@@ -68,51 +53,42 @@
                     <option value="BA 2">BA 2</option>
                 </select>
             </div>
-            <div class="form-group"><label>Cód. OP</label><input type="text" id="op_nome" placeholder="Ex: OP-001"></div>
-            <div class="form-group"><label>Peças Boas</label><input type="number" id="boas_total" placeholder="0"></div>
-            <div class="form-group"><label>Total Moído (Kg)</label><input type="number" id="moido_total" step="0.01" placeholder="0.00"></div>
+            <div class="form-group"><label>OP</label><input type="text" id="op_nome"></div>
+            <div class="form-group"><label>Boas</label><input type="number" id="boas_total" oninput="calcular()"></div>
+            <div class="form-group"><label>Moído (Kg)</label><input type="number" id="moido_total" step="0.01"></div>
         </div>
 
         <div class="refugo-area">
-            <label style="color: #c53030;">Lançar Motivos de Refugo (Clique no X para corrigir)</label>
-            <div class="refugo-controls">
-                <select id="motivo_refugo">
+            <label>Refugos</label>
+            <div style="display:flex; gap:10px;">
+                <select id="motivo_refugo" style="flex:1">
                     <option value="Ajustes">Ajustes</option>
                     <option value="Fora do peso">Fora do peso</option>
                     <option value="Setup">Setup</option>
                     <option value="Furos/Bolhas">Furos/Bolhas</option>
                     <option value="Contaminação">Contaminação</option>
                 </select>
-                <input type="number" id="qtd_refugo_parcial" placeholder="0">
-                <button type="button" class="btn-add" onclick="adicionarRefugo()">+</button>
+                <input type="number" id="qtd_refugo_parcial" style="width:80px">
+                <button type="button" onclick="adicionarRefugo()" style="background:var(--danger); color:white; border:none; padding:10px 15px; border-radius:6px; cursor:pointer">+</button>
             </div>
-            <div id="lista_refugos_texto" style="margin-top:15px; color: #555;">Nenhum refugo lançado.</div>
+            <div id="lista_refugos_texto" style="margin-top:10px;">Nenhum refugo.</div>
         </div>
 
         <div class="res-box">
-            <div class="res-item">EFICIÊNCIA <span id="kpi_prod">0%</span></div>
-            <div class="res-item">ÍNDICE REFUGO <span id="kpi_refugo_perc">0%</span></div>
+            <div>EFICIÊNCIA <br><span id="kpi_prod">0%</span></div>
+            <div>% REFUGO <br><span id="kpi_refugo_perc">0%</span></div>
         </div>
 
-        <button type="button" class="btn" id="btnSalvar" onclick="salvarTurno()">FINALIZAR E SALVAR</button>
-        <div id="status" class="status-msg"></div>
+        <button id="btnSalvar" class="btn" onclick="salvarTurno()">FINALIZAR E SALVAR</button>
+        <div id="status" style="display:none; margin-top:10px; padding:10px; border-radius:5px; text-align:center; font-weight:bold;"></div>
     </div>
 
     <div class="card">
-        <h2>📊 Histórico Recente</h2>
+        <h2>📊 Histórico</h2>
         <div style="overflow-x:auto;">
             <table>
                 <thead>
-                    <tr>
-                        <th>Data/Hora</th>
-                        <th>OP</th>
-                        <th>Máquina</th>
-                        <th>Boas</th>
-                        <th>Refugo</th>
-                        <th>% Ref</th>
-                        <th>Efic.</th>
-                        <th>Ações</th>
-                    </tr>
+                    <tr><th>Hora</th><th>OP</th><th>Máquina</th><th>Boas</th><th>Refugo</th><th>Efic.</th><th>Ações</th></tr>
                 </thead>
                 <tbody id="corpo-tabela"></tbody>
             </table>
@@ -121,14 +97,11 @@
 </div>
 
 <script>
-    // Configurações do seu Firebase
+    // CONFIGURAÇÃO
     const firebaseConfig = {
         apiKey: "AIzaSyCE0zS7nz1nok7jb2FZ2J_gARpVtqqiXec",
         authDomain: "producao-a16ef.firebaseapp.com",
         projectId: "producao-a16ef",
-        storageBucket: "producao-a16ef.firebasestorage.app",
-        messagingSenderId: "237309737536",
-        appId: "1:237309737536:web:34721dfe6dcdd107ba3da5",
         databaseURL: "https://producao-a16ef-default-rtdb.firebaseio.com"
     };
 
@@ -138,165 +111,101 @@
     let resumoRefugos = {};
     let totalRefugoGeral = 0;
 
-    // Função de Cálculo de KPIs
     function calcular() {
         const meta = parseFloat(document.getElementById('meta_calc').value) || 0;
         const boas = parseFloat(document.getElementById('boas_total').value) || 0;
-        const eficienc = meta > 0 ? (boas / meta) * 100 : 0;
         const totalProd = boas + totalRefugoGeral;
+        
+        const eficienc = meta > 0 ? (boas / meta) * 100 : 0;
         const pRefugo = totalProd > 0 ? (totalRefugoGeral / totalProd) * 100 : 0;
         
         document.getElementById('kpi_prod').innerText = eficienc.toFixed(1) + "%";
         document.getElementById('kpi_refugo_perc').innerText = pRefugo.toFixed(1) + "%";
     }
 
-    // Gerenciar Refugos (Adicionar e Remover)
     function adicionarRefugo() {
         const mot = document.getElementById('motivo_refugo').value;
-        const qtdInput = document.getElementById('qtd_refugo_parcial');
-        const qtd = parseInt(qtdInput.value) || 0;
-        
+        const qtd = parseInt(document.getElementById('qtd_refugo_parcial').value) || 0;
         if(qtd > 0) {
             resumoRefugos[mot] = (resumoRefugos[mot] || 0) + qtd;
             totalRefugoGeral += qtd;
-            atualizarListaVisualRefugos();
-            qtdInput.value = "";
+            document.getElementById('qtd_refugo_parcial').value = "";
+            atualizarListaRefugo();
             calcular();
         }
     }
 
-    function removerRefugo(motivo) {
-        if (resumoRefugos[motivo]) {
-            totalRefugoGeral -= resumoRefugos[motivo];
-            delete resumoRefugos[motivo];
-            atualizarListaVisualRefugos();
-            calcular();
-        }
-    }
-
-    function atualizarListaVisualRefugos() {
+    function atualizarListaRefugo() {
         const area = document.getElementById('lista_refugos_texto');
-        if (Object.keys(resumoRefugos).length === 0) {
-            area.innerHTML = "Nenhum refugo lançado.";
-            return;
-        }
-
         area.innerHTML = "";
-        for (const [mot, qtd] of Object.entries(resumoRefugos)) {
-            area.innerHTML += `
-                <span class="refugo-item">
-                    ${mot}: ${qtd}
-                    <button class="btn-remove-refugo" onclick="removerRefugo('${mot}')">×</button>
-                </span>
-            `;
+        for (const [m, q] of Object.entries(resumoRefugos)) {
+            area.innerHTML += `<span class="refugo-item">${m}: ${q} <span onclick="removerMotivo('${m}')" style="cursor:pointer; color:red; margin-left:5px">×</span></span>`;
         }
     }
 
-    // Função Principal de Salvar
-   async function salvarTurno() {
-        const btn = document.getElementById('btnSalvar');
-        const status = document.getElementById('status');
-        
-        const dados = {
-            chave_seguranca: "SOPRO2024", 
-            data: new Date().toLocaleDateString('pt-BR'),
-            hora: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
-            operador: document.getElementById('operador_nome').value,
-            maquina: document.getElementById('maquina_id').value,
-            op: document.getElementById('op_nome').value,
-            boas: parseInt(document.getElementById('boas_total').value) || 0,
-            moido: parseFloat(document.getElementById('moido_total').value) || 0,
-            refugos_detalhe: resumoRefugos,
-            total_refugo: totalRefugoGeral,
-            refugo_percent: document.getElementById('kpi_refugo_perc').innerText,
-            eficiencia: document.getElementById('kpi_prod').innerText,
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-        };
+    function removerMotivo(m) {
+        totalRefugoGeral -= resumoRefugos[m];
+        delete resumoRefugos[m];
+        atualizarListaRefugo();
+        calcular();
+    }
 
-        if(!dados.operador || !dados.maquina || !dados.op) {
-            status.style.display = "block";
-            status.innerText = "⚠️ Preencha os campos obrigatórios!";
-            status.style.backgroundColor = "#fff3cd";
-            return;
-        }
+    function salvarTurno() {
+        const status = document.getElementById('status');
+        const btn = document.getElementById('btnSalvar');
+        
+        const op = document.getElementById('op_nome').value;
+        const maq = document.getElementById('maquina_id').value;
+        if(!op || !maq) { alert("OP e Máquina são obrigatórios!"); return; }
 
         btn.disabled = true;
         status.style.display = "block";
         status.innerText = "⏳ Gravando...";
+        status.style.backgroundColor = "#eee";
 
-        // Gravando com ID fixo baseado no tempo para evitar o loop de conexão
-        const idUnico = Date.now();
-        db.ref('producao/' + idUnico).set(dados)
-            .then(() => {
-                status.innerText = "✅ Salvo com sucesso!";
-                status.style.backgroundColor = "#d4edda";
-                setTimeout(() => location.reload(), 1500);
-            })
-            .catch((error) => {
-                btn.disabled = false;
-                console.error("Erro:", error);
-                status.innerText = "❌ Erro: " + error.code;
-                status.style.backgroundColor = "#f8d7da";
-            });
+        const dados = {
+            op, maquina: maq,
+            operador: document.getElementById('operador_nome').value,
+            boas: parseInt(document.getElementById('boas_total').value) || 0,
+            moido: parseFloat(document.getElementById('moido_total').value) || 0,
+            total_refugo: totalRefugoGeral,
+            refugos_detalhe: resumoRefugos,
+            eficiencia: document.getElementById('kpi_prod').innerText,
+            refugo_percent: document.getElementById('kpi_refugo_perc').innerText,
+            data: new Date().toLocaleDateString('pt-BR'),
+            hora: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})
+        };
+
+        db.ref('producao').push(dados)
+        .then(() => {
+            status.innerText = "✅ Salvo!";
+            status.style.backgroundColor = "#d4edda";
+            setTimeout(() => location.reload(), 1000);
+        })
+        .catch(e => {
+            alert("Erro: " + e.message);
+            btn.disabled = false;
+        });
     }
 
-        btn.disabled = true;
-        status.style.display = "block";
-        status.innerText = "⏳ Gravando no Banco...";
-
-        // .push() cria um novo ID único, resolvendo conflitos de "3º registro"
-        db.ref('producao').push().set(dados)
-            .then(() => {
-                status.innerText = "✅ Salvo com sucesso!";
-                status.style.backgroundColor = "#d4edda";
-                setTimeout(() => location.reload(), 1500);
-            })
-            .catch((error) => {
-                btn.disabled = false;
-                console.error("Erro:", error);
-                status.innerText = "❌ ERRO: " + error.code;
-                status.style.backgroundColor = "#f8d7da";
-            });
-    }
-
-    // Carregar Histórico
-    function carregarHistorico() {
-        db.ref('producao').limitToLast(15).on('value', (snapshot) => {
+    function carregar() {
+        db.ref('producao').limitToLast(10).on('value', snap => {
             const corpo = document.getElementById('corpo-tabela');
             corpo.innerHTML = "";
-            let itens = [];
-            snapshot.forEach(child => { 
-                const val = child.val();
-                if(val.op) { 
-                    itens.unshift({ id: child.key, ...val }); 
-                }
-            });
-            itens.forEach(d => {
-                corpo.innerHTML += `<tr>
-                    <td>${d.data} ${d.hora}</td>
-                    <td>${d.op}</td>
-                    <td>${d.maquina}</td>
-                    <td>${d.boas}</td>
-                    <td><span class="badge-refugo">${d.total_refugo || 0}</span></td>
-                    <td>${d.refugo_percent}</td>
-                    <td>${d.eficiencia}</td>
-                    <td><button class="btn-del" onclick="excluirRegistro('${d.id}')">🗑️</button></td>
-                </tr>`;
+            snap.forEach(c => {
+                const d = c.val();
+                corpo.innerHTML = `<tr>
+                    <td>${d.hora}</td><td>${d.op}</td><td>${d.maquina}</td>
+                    <td>${d.boas}</td><td>${d.total_refugo}</td><td>${d.eficiencia}</td>
+                    <td><button class="btn-del" onclick="apagar('${c.key}')">🗑️</button></td>
+                </tr>` + corpo.innerHTML;
             });
         });
     }
 
-    function excluirRegistro(id) {
-        if(confirm("Deseja apagar este registro permanentemente?")) {
-            // Define como null para deletar (respeitando a regra !newData.exists())
-            db.ref('producao/' + id).set(null);
-        }
-    }
+    function apagar(id) { if(confirm("Apagar?")) db.ref('producao/' + id).remove(); }
 
-    // Ouvintes de Input
-    document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', calcular));
-    window.onload = carregarHistorico;
+    window.onload = carregar;
 </script>
 </body>
 </html>
-
