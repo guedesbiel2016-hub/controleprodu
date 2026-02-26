@@ -193,7 +193,7 @@
     }
 
     // Função Principal de Salvar
-    async function salvarTurno() {
+   async function salvarTurno() {
         const btn = document.getElementById('btnSalvar');
         const status = document.getElementById('status');
         
@@ -219,6 +219,26 @@
             status.style.backgroundColor = "#fff3cd";
             return;
         }
+
+        btn.disabled = true;
+        status.style.display = "block";
+        status.innerText = "⏳ Gravando...";
+
+        // Gravando com ID fixo baseado no tempo para evitar o loop de conexão
+        const idUnico = Date.now();
+        db.ref('producao/' + idUnico).set(dados)
+            .then(() => {
+                status.innerText = "✅ Salvo com sucesso!";
+                status.style.backgroundColor = "#d4edda";
+                setTimeout(() => location.reload(), 1500);
+            })
+            .catch((error) => {
+                btn.disabled = false;
+                console.error("Erro:", error);
+                status.innerText = "❌ Erro: " + error.code;
+                status.style.backgroundColor = "#f8d7da";
+            });
+    }
 
         btn.disabled = true;
         status.style.display = "block";
@@ -279,3 +299,4 @@
 </script>
 </body>
 </html>
+
