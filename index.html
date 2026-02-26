@@ -18,13 +18,21 @@
         .form-group { display: flex; flex-direction: column; }
         label { font-weight: bold; font-size: 0.85rem; margin-bottom: 5px; color: #555; }
         input, select { padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
+        
+        /* ÁREA DE REFUGO ATUALIZADA */
         .refugo-area { background: #fff5f5; padding: 15px; border-radius: 8px; border: 1px solid #fed7d7; margin-top: 15px; }
         .refugo-controls { display: flex; gap: 10px; align-items: flex-end; }
         .btn-add { background: var(--danger); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; height: 46px; }
+        
+        .refugo-item { background: #fee2e2; padding: 6px 12px; border-radius: 6px; margin-right: 8px; display: inline-flex; align-items: center; margin-bottom: 8px; border: 1px solid #fecaca; font-weight: bold; color: #c53030; font-size: 0.9rem; }
+        .btn-remove-refugo { cursor: pointer; color: #e74c3c; font-weight: bold; margin-left: 10px; border: none; background: none; font-size: 1.2rem; line-height: 1; }
+
         .res-box { background: var(--primary); color: white; padding: 15px; border-radius: 8px; margin-top: 15px; display: flex; justify-content: space-around; text-align: center; }
         .res-item span { display: block; font-size: 1.2rem; font-weight: bold; color: var(--warning); }
-        .btn { padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem; margin-top: 15px; background: var(--success); color: white; }
+        .btn { padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem; margin-top: 15px; background: var(--success); color: white; transition: 0.3s; }
+        .btn:hover { background: #219150; }
         .btn:disabled { background: #95a5a6; }
+        
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; }
         th { background: #f8f9fa; padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6; }
         td { padding: 12px; border-bottom: 1px solid #eee; }
@@ -56,7 +64,7 @@
                     <option value="AUTOBLOW 2">AUTOBLOW 2</option>
                     <option value="AUTOBLOW 3">AUTOBLOW 3</option>
                     <option value="BA 1">BA 1</option>
-                    <option value="BA 1">BA 2</option>
+                    <option value="BA 2">BA 2</option>
                 </select>
             </div>
             <div class="form-group"><label>Cód. OP</label><input type="text" id="op_nome" placeholder="Ex: OP-001"></div>
@@ -65,19 +73,19 @@
         </div>
 
         <div class="refugo-area">
-            <label style="color: #c53030;">Lançar Motivos de Refugo</label>
+            <label style="color: #c53030;">Lançar Motivos de Refugo (Clique no X para corrigir)</label>
             <div class="refugo-controls">
                 <select id="motivo_refugo">
                     <option value="Ajustes">Ajustes</option>
                     <option value="Fora do peso">Fora do peso</option>
                     <option value="Setup">Setup</option>
                     <option value="Furos/Bolhas">Furos/Bolhas</option>
-                    <option value="contaminação">Contaminação</option>
+                    <option value="Contaminação">Contaminação</option>
                 </select>
                 <input type="number" id="qtd_refugo_parcial" placeholder="0">
                 <button type="button" class="btn-add" onclick="adicionarRefugo()">+</button>
             </div>
-            <div id="lista_refugos_texto" style="margin-top:10px; font-weight:bold; color:red;">Nenhum refugo lançado.</div>
+            <div id="lista_refugos_texto" style="margin-top:15px; min-height: 30px; color: #555;">Nenhum refugo lançado.</div>
         </div>
 
         <div class="res-box">
@@ -147,9 +155,36 @@
         if(qtd > 0) {
             resumoRefugos[mot] = (resumoRefugos[mot] || 0) + qtd;
             totalRefugoGeral += qtd;
-            document.getElementById('lista_refugos_texto').innerText = "Refugos: " + JSON.stringify(resumoRefugos).replace(/["{}]/g, '').replace(/:/g, ': ').replace(/,/g, ' | ');
+            atualizarListaVisualRefugos();
             qtdInput.value = "";
             calcular();
+        }
+    }
+
+    function removerRefugo(motivo) {
+        if (resumoRefugos[motivo]) {
+            totalRefugoGeral -= resumoRefugos[motivo];
+            delete resumoRefugos[motivo];
+            atualizarListaVisualRefugos();
+            calcular();
+        }
+    }
+
+    function atualizarListaVisualRefugos() {
+        const area = document.getElementById('lista_refugos_texto');
+        if (Object.keys(resumoRefugos).length === 0) {
+            area.innerHTML = "Nenhum refugo lançado.";
+            return;
+        }
+
+        area.innerHTML = "";
+        for (const [mot, qtd] of Object.entries(resumoRefugos)) {
+            area.innerHTML += `
+                <span class="refugo-item">
+                    ${mot}: ${qtd}
+                    <button class="btn-remove-refugo" onclick="removerRefugo('${mot}')">×</button>
+                </span>
+            `;
         }
     }
 
@@ -182,26 +217,34 @@
         status.style.display = "block"; status.innerText = "⏳ Gravando...";
 
         try {
-            await db.ref('producao/' + Date.now()).set(dados);
+            // Uso de .push().set() para evitar conflitos no 3º registro
+            const novaRef = db.ref('producao').push();
+            await novaRef.set(dados);
+            
             status.innerText = "✅ Salvo com sucesso!";
             status.style.backgroundColor = "#d4edda";
             setTimeout(() => location.reload(), 1500);
         } catch (e) {
-            status.innerText = "❌ Erro nas Regras do Firebase.";
+            console.error(e);
+            status.innerText = "❌ Erro: Verifique a Chave SOPRO2024 nas Regras.";
             status.style.backgroundColor = "#f8d7da";
             btn.disabled = false;
         }
     }
 
     function carregarHistorico() {
-        db.ref('producao').limitToLast(10).on('value', (snapshot) => {
+        db.ref('producao').limitToLast(15).on('value', (snapshot) => {
             const corpo = document.getElementById('corpo-tabela');
             corpo.innerHTML = "";
             let itens = [];
-            snapshot.forEach(child => { itens.unshift({ id: child.key, ...child.val() }); });
+            snapshot.forEach(child => { 
+                if(child.val().op) { // Filtro básico para ignorar nós de config
+                    itens.unshift({ id: child.key, ...child.val() }); 
+                }
+            });
             itens.forEach(d => {
                 corpo.innerHTML += `<tr>
-                    <td>${d.data}</td>
+                    <td>${d.data} ${d.hora}</td>
                     <td>${d.op}</td>
                     <td>${d.maquina}</td>
                     <td>${d.boas}</td>
@@ -215,10 +258,9 @@
     }
 
     function excluirRegistro(id) {
-        if(confirm("Excluir?")) {
-            // Para excluir, o Firebase também precisa da chave. Mas como regras de ".write" afetam o "remove", 
-            // se der erro aqui, me avise que ajustamos a regra para permitir delete.
-            db.ref('producao/' + id).remove();
+        if(confirm("Deseja apagar este registro permanentemente?")) {
+            // Deletar enviando null para obedecer a regra !newData.exists()
+            db.ref('producao/' + id).set(null);
         }
     }
 
@@ -226,7 +268,4 @@
     window.onload = carregarHistorico;
 </script>
 </body>
-
 </html>
-
-
