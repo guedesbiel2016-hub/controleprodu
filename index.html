@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoproPro - Sistema Blindado</title>
+    <title>SoproPro - Sistema de Produção</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -19,16 +19,17 @@
         label { font-weight: bold; font-size: 0.85rem; margin-bottom: 5px; color: #555; }
         input, select { padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
         
-        /* ÁREA DE REFUGO ATUALIZADA */
+        /* Área de Refugo com Estorno */
         .refugo-area { background: #fff5f5; padding: 15px; border-radius: 8px; border: 1px solid #fed7d7; margin-top: 15px; }
         .refugo-controls { display: flex; gap: 10px; align-items: flex-end; }
         .btn-add { background: var(--danger); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; height: 46px; }
         
-        .refugo-item { background: #fee2e2; padding: 6px 12px; border-radius: 6px; margin-right: 8px; display: inline-flex; align-items: center; margin-bottom: 8px; border: 1px solid #fecaca; font-weight: bold; color: #c53030; font-size: 0.9rem; }
+        .refugo-item { background: #fee2e2; padding: 6px 12px; border-radius: 6px; margin-right: 8px; display: inline-flex; align-items: center; margin-bottom: 8px; border: 1px solid #fecaca; font-weight: bold; color: #c53030; }
         .btn-remove-refugo { cursor: pointer; color: #e74c3c; font-weight: bold; margin-left: 10px; border: none; background: none; font-size: 1.2rem; line-height: 1; }
 
         .res-box { background: var(--primary); color: white; padding: 15px; border-radius: 8px; margin-top: 15px; display: flex; justify-content: space-around; text-align: center; }
         .res-item span { display: block; font-size: 1.2rem; font-weight: bold; color: var(--warning); }
+        
         .btn { padding: 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem; margin-top: 15px; background: var(--success); color: white; transition: 0.3s; }
         .btn:hover { background: #219150; }
         .btn:disabled { background: #95a5a6; }
@@ -85,7 +86,7 @@
                 <input type="number" id="qtd_refugo_parcial" placeholder="0">
                 <button type="button" class="btn-add" onclick="adicionarRefugo()">+</button>
             </div>
-            <div id="lista_refugos_texto" style="margin-top:15px; min-height: 30px; color: #555;">Nenhum refugo lançado.</div>
+            <div id="lista_refugos_texto" style="margin-top:15px; color: #555;">Nenhum refugo lançado.</div>
         </div>
 
         <div class="res-box">
@@ -120,6 +121,7 @@
 </div>
 
 <script>
+    // Configurações do seu Firebase
     const firebaseConfig = {
         apiKey: "AIzaSyCE0zS7nz1nok7jb2FZ2J_gARpVtqqiXec",
         authDomain: "producao-a16ef.firebaseapp.com",
@@ -136,6 +138,7 @@
     let resumoRefugos = {};
     let totalRefugoGeral = 0;
 
+    // Função de Cálculo de KPIs
     function calcular() {
         const meta = parseFloat(document.getElementById('meta_calc').value) || 0;
         const boas = parseFloat(document.getElementById('boas_total').value) || 0;
@@ -147,6 +150,7 @@
         document.getElementById('kpi_refugo_perc').innerText = pRefugo.toFixed(1) + "%";
     }
 
+    // Gerenciar Refugos (Adicionar e Remover)
     function adicionarRefugo() {
         const mot = document.getElementById('motivo_refugo').value;
         const qtdInput = document.getElementById('qtd_refugo_parcial');
@@ -188,6 +192,7 @@
         }
     }
 
+    // Função Principal de Salvar
     async function salvarTurno() {
         const btn = document.getElementById('btnSalvar');
         const status = document.getElementById('status');
@@ -209,37 +214,41 @@
         };
 
         if(!dados.operador || !dados.maquina || !dados.op) {
-            status.style.display = "block"; status.innerText = "⚠️ Preencha Operador, Máquina e OP!";
-            status.style.backgroundColor = "#fff3cd"; return;
+            status.style.display = "block";
+            status.innerText = "⚠️ Preencha os campos obrigatórios!";
+            status.style.backgroundColor = "#fff3cd";
+            return;
         }
 
         btn.disabled = true;
-        status.style.display = "block"; status.innerText = "⏳ Gravando...";
+        status.style.display = "block";
+        status.innerText = "⏳ Gravando no Banco...";
 
-        try {
-            // Uso de .push().set() para evitar conflitos no 3º registro
-            const novaRef = db.ref('producao').push();
-            await novaRef.set(dados);
-            
-            status.innerText = "✅ Salvo com sucesso!";
-            status.style.backgroundColor = "#d4edda";
-            setTimeout(() => location.reload(), 1500);
-        } catch (e) {
-            console.error(e);
-            status.innerText = "❌ Erro: Verifique a Chave SOPRO2024 nas Regras.";
-            status.style.backgroundColor = "#f8d7da";
-            btn.disabled = false;
-        }
+        // .push() cria um novo ID único, resolvendo conflitos de "3º registro"
+        db.ref('producao').push().set(dados)
+            .then(() => {
+                status.innerText = "✅ Salvo com sucesso!";
+                status.style.backgroundColor = "#d4edda";
+                setTimeout(() => location.reload(), 1500);
+            })
+            .catch((error) => {
+                btn.disabled = false;
+                console.error("Erro:", error);
+                status.innerText = "❌ ERRO: " + error.code;
+                status.style.backgroundColor = "#f8d7da";
+            });
     }
 
+    // Carregar Histórico
     function carregarHistorico() {
         db.ref('producao').limitToLast(15).on('value', (snapshot) => {
             const corpo = document.getElementById('corpo-tabela');
             corpo.innerHTML = "";
             let itens = [];
             snapshot.forEach(child => { 
-                if(child.val().op) { // Filtro básico para ignorar nós de config
-                    itens.unshift({ id: child.key, ...child.val() }); 
+                const val = child.val();
+                if(val.op) { 
+                    itens.unshift({ id: child.key, ...val }); 
                 }
             });
             itens.forEach(d => {
@@ -259,11 +268,12 @@
 
     function excluirRegistro(id) {
         if(confirm("Deseja apagar este registro permanentemente?")) {
-            // Deletar enviando null para obedecer a regra !newData.exists()
+            // Define como null para deletar (respeitando a regra !newData.exists())
             db.ref('producao/' + id).set(null);
         }
     }
 
+    // Ouvintes de Input
     document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', calcular));
     window.onload = carregarHistorico;
 </script>
