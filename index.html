@@ -30,7 +30,8 @@
         table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
         th { background: #f8f9fa; padding: 15px; text-align: left; border-bottom: 3px solid #dee2e6; color: var(--primary); }
         td { padding: 15px; border-bottom: 1px solid #eee; }
-        .btn-del { color: #ccc; cursor: pointer; background: none; border: none; font-size: 1.2rem; }
+        .btn-del { color: #ccc; cursor: pointer; background: none; border: none; font-size: 1.2rem; transition: 0.2s; }
+        .btn-del:hover { color: var(--danger); }
         #status { text-align: center; margin-top: 15px; font-weight: bold; padding: 12px; border-radius: 8px; display: none; }
     </style>
 </head>
@@ -87,7 +88,7 @@
         <div style="overflow-x:auto;">
             <table>
                 <thead>
-                    <tr><th>Hora</th><th>OP</th><th>Máquina</th><th>Boas</th><th>Efic. %</th><th>Ações</th></tr>
+                    <tr><th>Data/Hora</th><th>OP</th><th>Máquina</th><th>Boas</th><th>Efic. %</th><th>Ações</th></tr>
                 </thead>
                 <tbody id="corpo-tabela"></tbody>
             </table>
@@ -133,3 +134,121 @@
 
     function renderizarRefugos() {
         const div = document.getElementById('lista_refugos_texto');
+        div.innerHTML = "";
+        for (const [mot, qtd] of Object.entries(resumoRefugos)) {
+            div.innerHTML += `
+                <div class="refugo-item">
+                    ${mot}: ${qtd}
+                    <button class="btn-remove-tag" onclick="removerRefugo('${mot}')">×</button>
+                </div>`;
+        }
+    }
+
+    async function salvarSeguro() {
+        const btn = document.getElementById('btnSalvar');
+        const status = document.getElementById('status');
+        
+        const dados = {
+            data: new Date().toLocaleDateString('pt-BR'),
+            hora: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
+            meta: parseFloat(document.getElementById('meta_calc').value) || 0,
+            operador: document.getElementById('operador_nome').value,
+            maquina: document.getElementById('maquina_id').value,
+            op: document.getElementById('op_nome').value,
+            boas: parseInt(document.getElementById('boas_total').value) || 0,
+            moido: parseFloat(document.getElementById('moido_total').value) || 0,
+            refugos: resumoRefugos,
+            total_refugo: totalRefugoGeral,
+            eficiencia: document.getElementById('kpi_prod').innerText,
+            timestamp: Date.now()
+        };
+
+        if(!dados.operador || !dados.maquina || !dados.op) {
+            alert("Preencha Operador, Máquina e OP.");
+            return;
+        }
+
+        try {
+            btn.disabled = true;
+            btn.innerText = "GRAVANDO...";
+            
+            const res = await fetch(`${DB_URL}.json`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dados)
+            });
+
+            if(res.ok) {
+                status.style.display = "block";
+                status.style.background = "#d4edda";
+                status.innerText = "✅ Salvo com sucesso!";
+                limparFormulario();
+                carregar();
+            }
+        } catch (e) {
+            alert("Erro ao salvar.");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Finalizar e Gravar no Banco";
+            setTimeout(() => status.style.display = "none", 3000);
+        }
+    }
+
+    function limparFormulario() {
+        document.getElementById('op_nome').value = "";
+        document.getElementById('boas_total').value = "";
+        document.getElementById('moido_total').value = "";
+        resumoRefugos = {};
+        totalRefugoGeral = 0;
+        renderizarRefugos();
+        calcular();
+    }
+
+    async function carregar() {
+        const corpo = document.getElementById('corpo-tabela');
+        corpo.innerHTML = "<tr><td colspan='6'>Carregando...</td></tr>";
+        
+        try {
+            // Buscamos os dados do Firebase
+            const res = await fetch(`${DB_URL}.json`);
+            const data = await res.json();
+            
+            corpo.innerHTML = "";
+            
+            if (data) {
+                // Transformamos o objeto do Firebase em array e ordenamos pelo timestamp (mais novo primeiro)
+                const lista = Object.keys(data)
+                    .map(id => ({ id, ...data[id] }))
+                    .sort((a, b) => b.timestamp - a.timestamp);
+
+                lista.slice(0, 10).forEach(item => {
+                    corpo.innerHTML += `
+                        <tr>
+                            <td>${item.data || '--'} ${item.hora || '--'}</td>
+                            <td>${item.op || '--'}</td>
+                            <td>${item.maquina || '--'}</td>
+                            <td>${item.boas || 0}</td>
+                            <td style="color:var(--success); font-weight:bold">${item.eficiencia || '0%'}</td>
+                            <td><button class="btn-del" onclick="deletar('${item.id}')">🗑️</button></td>
+                        </tr>`;
+                });
+            } else {
+                corpo.innerHTML = "<tr><td colspan='6'>Nenhum registro encontrado.</td></tr>";
+            }
+        } catch (e) {
+            corpo.innerHTML = "<tr><td colspan='6'>Erro de conexão com o banco.</td></tr>";
+        }
+    }
+
+    async function deletar(id) {
+        if(confirm("Excluir este lançamento?")) {
+            await fetch(`${DB_URL}/${id}.json`, { method: 'DELETE' });
+            carregar();
+        }
+    }
+
+    // Carrega os dados assim que a página abre
+    window.onload = carregar;
+</script>
+</body>
+</html>
